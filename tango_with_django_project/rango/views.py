@@ -9,7 +9,7 @@ from django.http import HttpResponseRedirect, HttpResponse
 from django.core.urlresolvers import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
-
+from datetime import datetime
 
 
 def show_category(request, category_name_slug):
@@ -28,6 +28,7 @@ def show_category(request, category_name_slug):
     return render(request, 'rango/category.html', context_dict)
 
 def index(request):
+
 ##### Keeping these comments as a note to myself what's going on..
     # Construct a dictionary to pass to the template engine as its context.
     # Note the key boldmessage is the same as {{ boldmessage }} in the template!
@@ -37,13 +38,40 @@ def index(request):
     context_dict = {'categories': category_list,
                     'pages': page_list}
 
+    response = render(request, 'rango/index.html',context_dict)
+    visitor_cookie_handler(request, response)
+    return response
+
+
+
+
     # Return a rendered response to send to the client.
     # We make use of the shortcut function to make our lives easier
     # Note that teh first parameter is the template we wish to use
     return render(request, 'rango/index.html', context=context_dict)
 
+def visitor_cookie_handler(request, response):
+    visits_cookie = int(request.COOKIES.get('visits', '1'))
+
+    last_visit_cookie = request.COOKIES.get('last_visit', str(datetime.now()))
+    last_visit_time = datetime.strptime(last_visit_cookie[:-7], '%Y-%m-%d %H:%M:%S')
+
+    if (datetime.now() - last_visit_time).days > 0:
+        visits = visits_cookie + 1
+        return visits
+        resoponse.set_cookie('last_visit', str(datetime.now()))
+    else:
+        response.set_cookie('last_visit', last_visit_cookie)
+
+    response.set_cookie('visits', visits)
+    return response
+
+
 
 def about(request):
+    if request.session.test_cookie_worked():
+        print("TEST COOKIE WORKED")
+        request.session.delete_test_cookie()
     context_dict = {'mymessage': "This tutorial has been put together by Viktor Eriksson"}
     return render(request, 'rango/about.html', context=context_dict)
 
